@@ -1,0 +1,812 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>大学人生模拟器 2026 - iOS版</title>
+<script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;700&family=Zcool+KuaiLe&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Noto Sans SC', sans-serif; background-color: #0f172a; color: #e2e8f0; overflow-x: hidden; }
+        .title-font { font-family: 'Zcool KuaiLe', cursive; }
+        .glass-panel { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5); }
+        .stat-bar-bg { background: rgba(255, 255, 255, 0.1); border-radius: 9999px; height: 8px; overflow: hidden; }
+        .stat-bar-fill { height: 100%; border-radius: 9999px; transition: width 0.5s ease; }
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #0f172a; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+        .major-card { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+        .major-card:hover { transform: translateY(-5px); box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5); border-color: #3b82f6; }
+        .major-card.selected { border-color: #10b981; background: rgba(16, 185, 129, 0.1); box-shadow: 0 0 20px rgba(16, 185, 129, 0.3); }
+        @keyframes float { 0% { transform: translateY(0px); } 50% { transform: translateY(-10px); } 100% { transform: translateY(0px); } }
+        .floating { animation: float 4s ease-in-out infinite; }
+        .fade-in { animation: fadeIn 0.5s ease-out forwards; opacity: 0; }
+        @keyframes fadeIn { to { opacity: 1; } }
+        .choice-btn { transition: all 0.2s; }
+        .choice-btn:hover { transform: scale(1.02); background-color: rgba(59, 130, 246, 0.2); }
+        .timeline-item { position: relative; }
+        .timeline-item.active { color: #10b981; font-weight: bold; }
+        .timeline-item.active::after { content: ''; position: absolute; bottom: -8px; left: 50%; transform: translateX(-50%); width: 8px; height: 8px; background: #10b981; border-radius: 50%; box-shadow: 0 0 10px #10b981; }
+        .warning-pulse { animation: warningPulse 2s infinite; }
+        @keyframes warningPulse { 0%, 100% { box-shadow: 0 0 5px rgba(239, 68, 68, 0.5); } 50% { box-shadow: 0 0 20px rgba(239, 68, 68, 0.8); } }
+        .summary-card { background: linear-gradient(135deg, rgba(30, 41, 59, 0.9), rgba(15, 23, 42, 0.9)); border: 1px solid rgba(59, 130, 246, 0.3); }
+    </style>
+<base target="_blank">
+<base target="_blank">
+<base target="_blank">
+</head>
+<body class="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+    <div id="app-container" class="w-full max-w-6xl p-4 relative">
+        <header class="text-center mb-8 floating">
+            <h1 class="text-5xl md:text-6xl title-font text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-purple-500 mb-2 drop-shadow-lg">大学人生模拟器</h1>
+            <p class="text-slate-400 text-lg">UNIVERSITY LIFE SIMULATOR - 完整版</p>
+        </header>
+
+        <div id="timeline-display" class="hidden mb-6 glass-panel rounded-xl p-4">
+            <div class="flex justify-between items-center text-sm text-slate-400 overflow-x-auto">
+                <div class="timeline-item active" data-sem="0">大一上</div><div class="h-px flex-grow bg-slate-600 mx-2"></div>
+                <div class="timeline-item" data-sem="1">大一下</div><div class="h-px flex-grow bg-slate-600 mx-2"></div>
+                <div class="timeline-item" data-sem="2">大二上</div><div class="h-px flex-grow bg-slate-600 mx-2"></div>
+                <div class="timeline-item" data-sem="3">大二下</div><div class="h-px flex-grow bg-slate-600 mx-2"></div>
+                <div class="timeline-item" data-sem="4">大三上</div><div class="h-px flex-grow bg-slate-600 mx-2"></div>
+                <div class="timeline-item" data-sem="5">大三下</div><div class="h-px flex-grow bg-slate-600 mx-2"></div>
+                <div class="timeline-item" data-sem="6">大四上</div><div class="h-px flex-grow bg-slate-600 mx-2"></div>
+                <div class="timeline-item" data-sem="7">大四下</div>
+            </div>
+        </div>
+
+        <div id="screen-creation" class="glass-panel rounded-2xl p-8 w-full">
+            <h2 class="text-2xl font-bold mb-6 text-cyan-300 border-b border-slate-700 pb-2">角色创建</h2>
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <div>
+                    <h3 class="text-lg font-semibold mb-4 text-purple-300">1. 选择你的学科门类 (12个学科门类)</h3>
+                    <div class="grid grid-cols-1 gap-3 max-h-96 overflow-y-auto pr-2" id="major-list"></div>
+                </div>
+                <div>
+                    <h3 class="text-lg font-semibold mb-4 text-purple-300">2. 分配初始属性点 (剩余: <span id="points-remaining" class="text-yellow-400">10</span>)</h3>
+                    <p class="text-xs text-slate-400 mb-4">不同学科有初始加成，分配剩余点数。</p>
+                    <div class="space-y-4" id="stats-container"></div>
+                    <div class="mt-8 p-4 bg-slate-800/50 rounded-lg border border-slate-700">
+                        <h4 class="font-bold text-white mb-2">当前状态预览:</h4>
+                        <div id="stat-preview-bars" class="space-y-2"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="mt-8 flex justify-end">
+                <button onclick="startGame()" class="px-8 py-3 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white font-bold rounded-full shadow-lg transform transition hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed" id="start-btn">开始大学生活</button>
+            </div>
+        </div>
+
+        <div id="screen-gameplay" class="hidden glass-panel rounded-2xl p-1 w-full h-[85vh] flex flex-col md:flex-row overflow-hidden">
+            <div class="w-full md:w-1/4 bg-slate-900/80 p-6 flex flex-col border-r border-slate-700 overflow-y-auto">
+                <div class="mb-6 text-center">
+                    <div class="inline-block p-3 rounded-full bg-slate-800 mb-2"><span id="game-avatar" class="text-4xl">👨‍🎓</span></div>
+                    <h2 id="game-major-name" class="font-bold text-xl text-white">专业名称</h2>
+                    <div class="text-sm text-cyan-400" id="game-semester-display">大一上学期</div>
+                    <div class="text-xs text-slate-400 mt-2" id="game-year-display">第 1 年 / 共 4 年</div>
+                </div>
+                <div class="space-y-4 flex-grow"><div id="game-stats-display"></div><div id="status-warnings" class="space-y-2 mt-4"></div></div>
+                <div class="mt-4 pt-4 border-t border-slate-700">
+                    <button onclick="takeRest()" id="rest-btn" class="w-full py-2 text-xs bg-green-800 hover:bg-green-700 text-green-100 rounded border border-green-600 mb-2 hidden">🛌 申请休整/请假</button>
+                    <button onclick="confirmDropout()" class="w-full py-2 text-xs bg-red-900/50 hover:bg-red-800 text-red-200 rounded border border-red-700">⚠️ 申请休学/退学</button>
+                    <div class="text-xs text-slate-500 text-center mt-2">GPA: <span id="game-gpa" class="text-white font-mono">0.00</span></div>
+                </div>
+            </div>
+            <div class="w-full md:w-3/4 p-6 md:p-10 flex flex-col relative overflow-y-auto" id="event-area">
+                <div class="mb-6">
+                    <span id="event-tag" class="px-3 py-1 rounded-full text-xs font-bold bg-blue-900 text-blue-200 border border-blue-700 mb-2 inline-block">入学季</span>
+                    <h2 id="event-title" class="text-3xl font-bold text-white mb-2">欢迎来到大学校园</h2>
+                    <div class="h-1 w-20 bg-purple-500 rounded"></div>
+                </div>
+                <div class="bg-slate-800/40 p-6 rounded-xl border-l-4 border-purple-500 mb-8 shadow-inner">
+                    <p id="event-desc" class="text-lg leading-relaxed text-slate-200"></p>
+                    <div id="event-flavor" class="mt-4 text-sm text-slate-400 italic"></div>
+                </div>
+                <div id="comparison-view" class="hidden mb-6 bg-slate-900/90 p-4 rounded-lg border border-slate-600">
+                    <h4 class="text-sm font-bold text-yellow-400 mb-2">📊 判定结果</h4>
+                    <div class="grid grid-cols-3 gap-2 text-xs text-center" id="comparison-grid"></div>
+                </div>
+                <div id="choices-container" class="grid grid-cols-1 gap-4"></div>
+            </div>
+        </div>
+
+        <div id="screen-year-summary" class="hidden glass-panel rounded-2xl p-8 w-full">
+            <h2 class="text-3xl title-font text-center text-white mb-2" id="summary-year-title">学年总结</h2>
+            <p class="text-slate-400 text-center mb-8" id="summary-year-subtitle"></p>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                <div class="summary-card p-6 rounded-xl"><h3 class="text-lg font-bold text-cyan-400 mb-4">📊 属性变化</h3><div id="summary-stats-change" class="space-y-2 text-sm"></div></div>
+                <div class="summary-card p-6 rounded-xl"><h3 class="text-lg font-bold text-purple-400 mb-4">⭐ 关键事件</h3><div id="summary-key-events" class="space-y-2 text-sm max-h-48 overflow-y-auto"></div></div>
+                <div class="summary-card p-6 rounded-xl"><h3 class="text-lg font-bold text-green-400 mb-4">💡 发展建议</h3><div id="summary-advice" class="text-sm text-slate-300 leading-relaxed"></div></div>
+            </div>
+            <div class="text-center"><button onclick="nextYear()" class="px-8 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold rounded-full hover:scale-105 transition">进入下一学年 ➔</button></div>
+        </div>
+
+        <div id="screen-ending" class="hidden glass-panel rounded-2xl p-8 w-full text-center">
+            <h2 class="text-4xl title-font text-white mb-2">毕业评估报告</h2>
+            <p class="text-slate-400 mb-8">四年时光转瞬即逝...</p>
+            <div class="bg-slate-900/50 rounded-xl p-8 max-w-4xl mx-auto border border-slate-700 mb-8">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+                    <div><canvas id="radarChart" width="300" height="300"></canvas></div>
+                    <div class="text-left space-y-4">
+                        <h3 class="text-2xl font-bold text-cyan-400" id="end-title">全能学霸</h3>
+                        <p class="text-slate-300" id="end-desc">你在大学期间表现优异，各项指标均衡发展。</p>
+                        <div class="space-y-2 mt-4">
+                            <div class="flex justify-between text-sm"><span>专注度</span><span class="font-mono text-blue-400" id="end-focus">0</span></div>
+                            <div class="flex justify-between text-sm"><span>特长</span><span class="font-mono text-purple-400" id="end-talent">0</span></div>
+                            <div class="flex justify-between text-sm"><span>健康值</span><span class="font-mono text-green-400" id="end-health">0</span></div>
+                            <div class="flex justify-between text-sm"><span>社交力</span><span class="font-mono text-pink-400" id="end-social">0</span></div>
+                            <div class="flex justify-between text-sm"><span>抗压值</span><span class="font-mono text-red-400" id="end-resistance">0</span></div>
+                            <div class="h-px bg-slate-600 my-2"></div>
+                            <div class="flex justify-between text-base font-bold"><span>🏆 属性总值</span><span class="font-mono text-yellow-400" id="end-total">0</span></div>
+                            <div class="flex justify-between text-xs text-slate-400 mt-1"><span>综合评级</span><span id="end-rating">-</span></div>
+                        </div>
+                        <div class="mt-6 p-4 bg-slate-800 rounded-lg"><h4 class="text-sm font-bold text-white mb-2">🎯 大学四年总评</h4><p class="text-sm text-slate-300" id="end-summary"></p></div>
+                    </div>
+                </div>
+            </div>
+            <div class="flex justify-center gap-4">
+                <button onclick="exportLog()" class="px-8 py-3 bg-gradient-to-r from-green-600 to-teal-600 text-white font-bold rounded-full hover:scale-105 transition">📄 导出操作记录</button>
+                <button onclick="location.reload()" class="px-8 py-3 bg-white text-slate-900 font-bold rounded-full hover:bg-slate-200 transition">重新开始人生</button>
+            </div>
+        </div>
+    </div>
+
+<script>
+const STATS = {
+    focus: { name: '专注度', color: 'bg-blue-500', desc: '影响学习效率', icon: '🎯' },
+    talent: { name: '特长', color: 'bg-purple-500', desc: '影响竞赛与特殊事件', icon: '✨' },
+    health: { name: '健康值', color: 'bg-green-500', desc: '影响身体状态', icon: '💪' },
+    social: { name: '社交力', color: 'bg-pink-500', desc: '影响社团与人际', icon: '👥' },
+    resistance: { name: '抗压值', color: 'bg-red-500', desc: '抗压能力，归零时崩溃', icon: '🛡️' }
+};
+
+const MAJORS = [
+    { id: 'philosophy', name: '哲学', icon: '🤔', category: '人文社科', desc: '思考人生终极问题，培养批判性思维。', baseStats: { focus: 2, talent: 1, health: 1, social: 0, resistance: 3 }, advantages: ['focus', 'resistance'] },
+    { id: 'economics', name: '经济学', icon: '📈', category: '社科经管', desc: '研究资源配置，商场如战场。', baseStats: { focus: 2, talent: 0, health: 0, social: 2, resistance: 3 }, advantages: ['social', 'focus'] },
+    { id: 'law', name: '法学', icon: '⚖️', category: '社科经管', desc: '背诵大量法条，逻辑严密。', baseStats: { focus: 3, talent: 0, health: -1, social: 1, resistance: 4 }, advantages: ['focus', 'resistance'] },
+    { id: 'education', name: '教育学', icon: '📚', category: '教育艺术', desc: '教书育人，需要极大的耐心。', baseStats: { focus: 1, talent: 1, health: 1, social: 2, resistance: 3 }, advantages: ['social', 'health'] },
+    { id: 'literature', name: '文学', icon: '✍️', category: '人文社科', desc: '腹有诗书气自华，创作需要灵感。', baseStats: { focus: 1, talent: 3, health: 1, social: 0, resistance: 3 }, advantages: ['talent', 'focus'] },
+    { id: 'history', name: '历史学', icon: '🏛️', category: '人文社科', desc: '博古通今，考古发掘需要体力。', baseStats: { focus: 3, talent: 1, health: 0, social: 0, resistance: 3 }, advantages: ['focus', 'talent'] },
+    { id: 'science', name: '理学', icon: '🔬', category: '理工农医', desc: '探索自然规律，实验与理论并重。', baseStats: { focus: 3, talent: 1, health: 0, social: -1, resistance: 4 }, advantages: ['focus', 'talent'] },
+    { id: 'engineering', name: '工学', icon: '⚙️', category: '理工农医', desc: '工程师的摇篮，动手能力至关重要。', baseStats: { focus: 2, talent: 2, health: 1, social: 0, resistance: 3 }, advantages: ['talent', 'focus'] },
+    { id: 'agriculture', name: '农学', icon: '🌾', category: '理工农医', desc: '从田间到实验室，脚踏实地。', baseStats: { focus: 2, talent: 0, health: 2, social: 0, resistance: 3 }, advantages: ['health', 'focus'] },
+    { id: 'medicine', name: '医学', icon: '🩺', category: '理工农医', desc: '救死扶伤，学业繁重周期漫长。', baseStats: { focus: 3, talent: 0, health: 0, social: 1, resistance: 4 }, advantages: ['focus', 'health'] },
+    { id: 'arts', name: '艺术学', icon: '🎨', category: '教育艺术', desc: '灵感与技艺的结合，表达自我。', baseStats: { focus: 0, talent: 3, health: 1, social: 1, resistance: 3 }, advantages: ['talent', 'social'] },
+    { id: 'management', name: '管理学', icon: '💼', category: '社科经管', desc: '协调资源，领导力与沟通并重。', baseStats: { focus: 1, talent: 0, health: 0, social: 3, resistance: 3 }, advantages: ['social', 'resistance'] }
+];
+
+const EVENTS = {
+    welcome: {
+        id: 'welcome', semester: 0, title: '初入校园', tag: '入学季', type: 'common',
+        desc: '金色的九月，你拖着行李箱站在校门口。未来的四年即将在这里展开。',
+        flavor: '看着熙熙攘攘的人群，你深吸一口气，迈出了大学生涯的第一步。',
+        choices: [
+            { text: '📚 去图书馆占座，预习课程', effects: { focus: 1, resistance: -1, health: -1 } },
+            { text: '🎉 参加社团招新，广交朋友', effects: { social: 2, resistance: 1, focus: -1 } },
+            { text: '🛌 整理宿舍，早点休息', effects: { health: 2, resistance: 2 } },
+            { text: '💻 了解专业培养方案', effects: { focus: 2, talent: 1, resistance: -1 } }
+        ]
+    }
+};
+
+const MAJOR_EVENTS = {
+    philosophy: [
+        { id: 'philosophy_debate', title: '苏格拉底式诘问', desc: '课堂上教授对你进行连环追问，关于"正义"的本质。', choices: [
+            { text: '运用逻辑论证', effects: { focus: 2, resistance: -1 }, check: { stat: 'focus', val: 4, success: '你的论证无懈可击，获得加分。', fail: '被问得哑口无言，场面尴尬。' } },
+            { text: '引用经典哲学观点', effects: { talent: 2, focus: 1 }, check: { stat: 'talent', val: 3, success: '旁征博引，展现深厚积累。', fail: '引用错误，被教授纠正。' } }
+        ]},
+        { id: 'existential_crisis', title: '存在主义危机', desc: '深夜思考人生意义，陷入虚无主义漩涡。', choices: [
+            { text: '向导师寻求指引', effects: { resistance: 2, focus: 1 } },
+            { text: '通过写作自我疗愈', effects: { talent: 2, resistance: 1, health: -1 } },
+            { text: '暂时放下，运动释放', effects: { health: 2, resistance: 1 } }
+        ]}
+    ],
+    economics: [
+        { id: 'stock_simulation', title: '模拟股市爆仓', desc: '投资学课程模拟盘，你的仓位遭遇连续跌停。', choices: [
+            { text: '追加保证金，死扛到底', effects: { resistance: -2, talent: 1 }, check: { stat: 'talent', val: 3, success: '奇迹般反弹，扭亏为盈。', fail: '爆仓归零，心态崩了。' } },
+            { text: '果断止损，分析原因', effects: { focus: 2, resistance: 1 } }
+        ]},
+        { id: 'case_competition', title: '商业案例分析', desc: '分析某知名企业的战略转型，准备课堂展示。', choices: [
+            { text: '带领团队熬夜打磨', effects: { focus: 2, health: -2, resistance: -2 }, check: { stat: 'focus', val: 4, success: '案例分析获满分，成为范本。', fail: '疲劳导致漏洞百出。' } },
+            { text: '合理分工，按部就班', effects: { social: 2, focus: 1 } }
+        ]}
+    ],
+    law: [
+        { id: 'moot_court', title: '模拟法庭激辩', desc: '作为辩护人面对严厉的"法官"和犀利的"检察官"。', choices: [
+            { text: '熬夜准备辩护词', effects: { focus: 2, health: -1, resistance: -2 }, check: { stat: 'focus', val: 5, success: '精彩质证扭转案情！', fail: '紧张忘词，表现糟糕。' } },
+            { text: '与队友反复演练', effects: { social: 1, resistance: -1 }, check: { stat: 'social', val: 3, success: '配合默契，成功辩护。', fail: '配合失误，程序错误。' } }
+        ]},
+        { id: 'legal_clinic', title: '法律援助实践', desc: '为社区居民提供免费咨询，遇到复杂财产纠纷。', choices: [
+            { text: '接下复杂案件挑战', effects: { focus: 2, resistance: -2, social: 1 }, check: { stat: 'focus', val: 4, success: '成功调解，赢得口碑。', fail: '超出能力，转交导师。' } },
+            { text: '从简单咨询做起', effects: { social: 2, resistance: 1 } }
+        ]}
+    ],
+    education: [
+        { id: 'teaching_practice', title: '讲台初体验', desc: '第一次面对真实中小学生，课堂秩序混乱。', choices: [
+            { text: '严格要求，树立权威', effects: { focus: 2, resistance: -1 }, check: { stat: 'focus', val: 3, success: '纪律好转，教学有效。', fail: '过于严厉，学生抵触。' } },
+            { text: '寓教于乐，游戏互动', effects: { talent: 2, social: 1 }, check: { stat: 'talent', val: 3, success: '课堂活跃，深受喜爱。', fail: '场面失控，变成游乐场。' } }
+        ]},
+        { id: 'classroom_management', title: '班级管理危机', desc: '实习班级爆发冲突，两名学生打架。', choices: [
+            { text: '严肃批评教育', effects: { resistance: -1, focus: 1 }, check: { stat: 'resistance', val: 3, success: '冷静处理，化解矛盾。', fail: '处理不当，家长投诉。' } },
+            { text: '谈心疏导，了解原因', effects: { social: 2, resistance: -1 } }
+        ]}
+    ],
+    literature: [
+        { id: 'writing_contest', title: '校园文学奖截稿', desc: '小说创作大赛临近截止，你的作品尚未完成。', choices: [
+            { text: '闭关创作，追求完美', effects: { talent: 3, health: -1, resistance: -2, social: -1 }, check: { stat: 'talent', val: 4, success: '作品获一等奖，即将发表。', fail: '错过截稿日期。' } },
+            { text: '参加写作工作坊', effects: { social: 2, talent: 1 } }
+        ]},
+        { id: 'poetry_slam', title: '诗歌朗诵之夜', desc: '现代诗朗诵会，你需要上台表演原创诗歌。', choices: [
+            { text: '朗诵激进实验诗作', effects: { talent: 2, resistance: -1 }, check: { stat: 'talent', val: 4, success: '惊艳全场，引发讨论。', fail: '观众无法理解，冷场尴尬。' } },
+            { text: '选择保守经典风格', effects: { focus: 1, resistance: 1 } }
+        ]}
+    ],
+    history: [
+        { id: 'archaeological_dig', title: '田野考古发掘', desc: '暑期参与野外发掘，条件艰苦且枯燥。', choices: [
+            { text: '坚持下工地挖探方', effects: { focus: 2, health: -2, talent: 1 }, check: { stat: 'health', val: 3, success: '发现重要文物碎片！', fail: '中暑脱水，被迫撤回。' } },
+            { text: '留在室内整理文献', effects: { focus: 1, health: 1 } }
+        ]},
+        { id: 'archive_research', title: '古籍档案研究', desc: '在档案馆查阅珍贵史料，需要极大耐心。', choices: [
+            { text: '连续工作八小时', effects: { focus: 2, health: -1, resistance: -1 }, check: { stat: 'focus', val: 4, success: '发现关键史料线索。', fail: '眼花看错行，记录错误。' } },
+            { text: '定时休息，保护视力', effects: { health: 1, focus: -1 } }
+        ]}
+    ],
+    science: [
+        { id: 'lab_accident', title: '实验室意外', desc: '深夜实验发生事故，试剂泄漏。', choices: [
+            { text: '冷静处理，报告导师', effects: { focus: 2, resistance: -1 }, check: { stat: 'focus', val: 4, success: '妥善处理，获导师信任。', fail: '手忙脚乱，扩大损失。' } },
+            { text: '独自处理，避免处罚', effects: { resistance: -3, health: -1 }, check: { stat: 'resistance', val: 3, success: '瞒天过海，心有余悸。', fail: '隐瞒被发现，严重处分。' } }
+        ]},
+        { id: 'research_breakthrough', title: '实验突破', desc: '连续实验终于有了关键数据。', choices: [
+            { text: '立即撰写论文投稿', effects: { focus: 3, resistance: -2 }, check: { stat: 'focus', val: 5, success: '论文被SCI收录！', fail: '写作仓促，被审稿人拒稿。' } },
+            { text: '继续补充实验', effects: { focus: 2, health: -1 } }
+        ]}
+    ],
+    engineering: [
+        { id: 'robotics_comp', title: '机器人大赛决赛', desc: '自动导航小车比赛，小车突然失控。', choices: [
+            { text: '现场紧急调试代码', effects: { talent: 2, health: -2, resistance: -2 }, check: { stat: 'talent', val: 4, success: '修复成功，逆转夺冠！', fail: '短路烧毁主板，退赛。' } },
+            { text: '启用备用方案', effects: { focus: 2, health: 1 }, check: { stat: 'focus', val: 3, success: '稳定发挥，获得二等奖。', fail: '备用方案缺陷明显。' } }
+        ]},
+        { id: 'factory_visit', title: '工厂参观实习', desc: '参观重工业工厂，噪音和高温令人不适。', choices: [
+            { text: '深入车间记录流程', effects: { focus: 2, health: -1, resistance: -1 }, check: { stat: 'health', val: 3, success: '获得一手工程数据。', fail: '身体不适，提前离场。' } },
+            { text: '在控制室观摩', effects: { focus: -1, health: 1 } }
+        ]}
+    ],
+    agriculture: [
+        { id: 'harvest_season', title: '秋收农忙时节', desc: '试验田农作物成熟，需要抢收。', choices: [
+            { text: '连续一周下田劳作', effects: { health: 2, focus: 1, resistance: -1 }, check: { stat: 'health', val: 3, success: '丰收且数据完整。', fail: '过度劳累，腰酸背痛。' } },
+            { text: '雇佣临时工协助', effects: { social: 1, resistance: 1, focus: -1 } }
+        ]},
+        { id: 'greenhouse_project', title: '温室大棚项目', desc: '负责调控温室环境参数，系统突然故障。', choices: [
+            { text: '手动调控，彻夜值守', effects: { focus: 2, health: -2, resistance: -1 }, check: { stat: 'focus', val: 3, success: '挽救了珍贵作物。', fail: '操作失误，损失严重。' } },
+            { text: '联系技术人员维修', effects: { social: 1, resistance: 1 } }
+        ]}
+    ],
+    medicine: [
+        { id: 'first_surgery', title: '手术台初体验', desc: '作为一助参与真实手术，紧张到手抖。', choices: [
+            { text: '强迫自己冷静', effects: { resistance: -2, focus: 2 }, check: { stat: 'resistance', val: 4, success: '完成缝合，获主刀表扬。', fail: '过度紧张，被赶出手术室。' } },
+            { text: '请求更换器械护士', effects: { focus: -1, health: 1 } }
+        ]},
+        { id: 'night_shift', title: '连续夜班', desc: '住院部轮值，连续工作36小时未眠。', choices: [
+            { text: '硬撑到底', effects: { health: -3, focus: 1, resistance: -2 }, check: { stat: 'health', val: 4, success: '扛住了，身心俱疲。', fail: '晕倒值班室，送急诊。' } },
+            { text: '申请调休', effects: { health: 1, social: -1 } }
+        ]}
+    ],
+    arts: [
+        { id: 'gallery_opening', title: '个展开幕式', desc: '作品入选校内美术馆，需要致辞。', choices: [
+            { text: '盛装出席，积极社交', effects: { social: 3, talent: 1, resistance: -1 }, check: { stat: 'social', val: 4, success: '结识画廊主，作品被收藏。', fail: '自我介绍尴尬，收效甚微。' } },
+            { text: '专注作品讲解', effects: { talent: 2, focus: 1 } }
+        ]},
+        { id: 'performance_night', title: '汇报演出', desc: '期末汇报演出，你的节目压轴登场。', choices: [
+            { text: '挑战高难度即兴创作', effects: { talent: 3, resistance: -2 }, check: { stat: 'talent', val: 5, success: '完美演绎，全场起立鼓掌。', fail: '失误频出，演砸了。' } },
+            { text: '保守完成既定曲目', effects: { talent: 1, resistance: 1 } }
+        ]}
+    ],
+    management: [
+        { id: 'business_plan', title: '创业计划大赛', desc: '需要提交完整的商业计划书并路演。', choices: [
+            { text: '组建跨专业团队', effects: { social: 2, talent: 1, resistance: -1 }, check: { stat: 'social', val: 4, success: '方案多元，获投资意向。', fail: '团队管理混乱，互相推诿。' } },
+            { text: '独自完成所有内容', effects: { focus: 2, resistance: -2, health: -1 }, check: { stat: 'focus', val: 4, success: '独立完成，逻辑严谨。', fail: '精力有限，财务预测出错。' } }
+        ]},
+        { id: 'leadership_camp', title: '领导力训练营', desc: '户外拓展项目，需要担任队长。', choices: [
+            { text: '强势指挥，追求胜利', effects: { resistance: -1, social: 1 }, check: { stat: 'resistance', val: 3, success: '团队高效，赢得比赛。', fail: '队员抵触，团队分裂。' } },
+            { text: '民主协商，照顾队员', effects: { social: 2, focus: -1 } }
+        ]}
+    ]
+};
+
+const CONDITIONAL_EVENTS = {
+    low_health: {
+        id: 'low_health', condition: (stats) => stats.health <= 2, title: '⚠️ 健康预警', tag: '紧急事件',
+        desc: '你的身体发出了警报。连续的熬夜和不规律饮食让你头晕目眩。',
+        choices: [
+            { text: '🏥 请假休养一周', effects: { health: 3, resistance: 2, focus: -1 }, special: 'rest' },
+            { text: '💊 硬撑继续上课', effects: { health: -2, resistance: -2 } },
+            { text: '🏃 开始规律作息', effects: { health: 2, focus: -1, social: -1 } }
+        ]
+    },
+    burnout: {
+        id: 'burnout', condition: (stats) => stats.resistance <= 0, title: '⚠️ 心理崩溃', tag: '心理危机',
+        desc: '长期的压力积累突破了心理防线。你感到极度疲惫、焦虑，无法集中注意力。',
+        choices: [
+            { text: '🧘 寻求专业心理咨询', effects: { resistance: 5, health: 2, social: 1 }, special: 'counseling' },
+            { text: '🏠 回家休养一段时间', effects: { resistance: 4, health: 3, focus: -2, social: -1 }, special: 'rest' },
+            { text: '📚 强迫自己继续学习', effects: { resistance: -1, health: -3, focus: -2 } }
+        ]
+    },
+    popular: {
+        id: 'popular', 
+        condition: (stats, state) => stats.social >= 8 && state.semester >= 4 && (state.eventCounts.popular || 0) < 2, 
+        title: '🌟 校园风云人物', 
+        tag: '特殊机遇',
+        desc: '你的社交影响力辐射整个校园，各种机会找上门来。',
+        choices: [
+            { text: '🎤 竞选学生会主席', effects: { social: 2, resistance: -2, focus: -1 }, check: { stat: 'social', val: 8, success: '高票当选，成为学生领袖！', fail: '虽然落选，但知名度提升。' } },
+            { text: '💼 接受企业实习邀请', effects: { focus: 2, social: 1, resistance: -1 } }
+        ]
+    },
+    academic_warning: {
+        id: 'academic_warning', condition: (state) => state.gpa < 2.0, title: '📉 学业警告', tag: '学业危机',
+        desc: '你的GPA低于学校要求，收到了学业警告通知书。',
+        choices: [
+            { text: '📚 暂停社团，专心学业', effects: { focus: 3, social: -2, resistance: -1 } },
+            { text: '🤝 找导师谈话寻求帮助', effects: { focus: 2, social: 1, resistance: 1 } },
+            { text: '😰 陷入自暴自弃', effects: { resistance: -3, health: -2, focus: -2 } }
+        ]
+    }
+};
+
+const COMMON_EVENTS = [
+    { id: 'military_training', semester: 0, title: '烈日下的军训', tag: '入学适应', desc: '九月的烈日下，你们正在进行队列训练。汗水浸透了军装，脚后跟已经磨出了水泡。', choices: [
+        { text: '咬牙坚持，争取标兵', effects: { resistance: 1, health: -1, focus: 1 }, check: { stat: 'health', val: 3, success: '你凭借顽强意志获得军训标兵称号！', fail: '你中暑晕倒，被送往医务室。' } },
+        { text: '申请病假，旁观休息', effects: { health: 1, resistance: -1, social: -1 } },
+        { text: '积极表现，成为通讯员', effects: { social: 2, resistance: -1 } }
+    ]},
+    { id: 'club_recruit', semester: 0, title: '百团大战', tag: '社团纳新', desc: '操场上人声鼎沸，各个社团使出浑身解数招新。音乐、舞蹈、辩论、科技...你该如何选择？', choices: [
+        { text: '🎸 加入文艺类社团', effects: { talent: 2, social: 1, health: -1 }, check: { stat: 'talent', val: 2, success: '才华得到认可，成为社团骨干。', fail: '排练占用太多时间，感到疲惫。' } },
+        { text: '🗣️ 加入辩论/演讲社团', effects: { social: 2, focus: 1, resistance: -1 }, check: { stat: 'social', val: 2, success: '口才惊艳全场，成为明星辩手。', fail: '辩论中语无伦次，自信心受挫。' } },
+        { text: '🔬 加入学术/科技社团', effects: { focus: 2, talent: 1, social: -1 }, check: { stat: 'focus', val: 3, success: '找到志同道合的伙伴。', fail: '学术讨论太枯燥，中途退出。' } }
+    ]},
+    { id: 'first_exam', semester: 0, title: '大学第一次期中', tag: '学业压力', desc: '第一次大学期中考试来了，你发现高中那套学习方法似乎不管用了。', choices: [
+        { text: '☕ 通宵突击复习', effects: { focus: 1, health: -2, resistance: -2 }, check: { stat: 'focus', val: 3, success: '临时抱佛脚有用！及格万岁。', fail: '熬夜伤身，考场上睡着了。' } },
+        { text: '🤝 组建学习小组', effects: { social: 1, focus: 1 }, check: { stat: 'social', val: 2, success: '学霸同学分享笔记，收获颇丰。', fail: '小组变成了聊天局，效率低下。' } }
+    ]},
+    { id: 'major_transfer', semester: 1, title: '转专业申请', tag: '关键抉择', desc: '学校开放转专业申请，你对现在的专业产生动摇。', choices: [
+        { text: '认真准备转专业考试', effects: { focus: 2, resistance: -2, health: -1 }, check: { stat: 'focus', val: 4, success: '成功转入理想专业！', fail: '考试失利，留在原专业。' } },
+        { text: '留在本专业深耕', effects: { focus: 1, resistance: 1, social: -1 } },
+        { text: '辅修第二专业', effects: { focus: -1, resistance: -1, talent: 1 } }
+    ]},
+    { id: 'spring_sports', semester: 1, title: '春季运动会', tag: '校园活动', desc: '校运会即将开幕，班级需要报名参赛项目。', choices: [
+        { text: '🏃 报名长跑项目', effects: { health: 2, resistance: 1, focus: -1 }, check: { stat: 'health', val: 3, success: '获得第三名，为班级争光！', fail: '体力不支，中途退赛。' } },
+        { text: '📣 组织班级啦啦队', effects: { social: 2, focus: -1 } },
+        { text: '👀 充当观众', effects: { health: 1, social: -1 } }
+    ]},
+    { id: 'winter_social', semester: 1, title: '寒假社会实践', tag: '社会实践', desc: '学校要求必须参加社会实践，北方的冬天寒风刺骨。', choices: [
+        { text: '❄️ 参加山区支教', effects: { resistance: -2, health: -1, social: 2, talent: 1 }, check: { stat: 'health', val: 3, success: '虽然艰苦，但孩子们纯真的笑容治愈了你。', fail: '恶劣环境让你大病一场。' } },
+        { text: '💼 家乡企业实习', effects: { focus: 2, resistance: -1 }, check: { stat: 'social', val: 2, success: '父母托关系找到了好岗位。', fail: '被当成廉价劳动力。' } }
+    ]},
+    { id: 'core_course', semester: 2, title: '专业核心课', tag: '学业压力', desc: '难度陡增的专业核心课，教授要求极为严格，挂科率30%。', choices: [
+        { text: '📚 每天自习到闭馆', effects: { focus: 3, health: -1, resistance: -2 }, check: { stat: 'focus', val: 5, success: '掌握核心知识，考试拿A。', fail: '方法不对，努力白费。' } },
+        { text: '🤝 抱学霸大腿', effects: { social: 1, focus: 1, resistance: -1 }, check: { stat: 'social', val: 3, success: '学霸笔记拯救了你。', fail: '学霸太忙，无暇顾及你。' } }
+    ]},
+    { id: 'cet_exam', semester: 2, title: '英语四六级', tag: '技能考试', desc: '英语四级考试临近，这是毕业的硬性要求。', choices: [
+        { text: '📖 刷真题背单词', effects: { focus: 2, resistance: -1 }, check: { stat: 'focus', val: 3, success: '高分通过！', fail: '低分飘过，惊险及格。' } },
+        { text: '🎧 看美剧练听力', effects: { talent: 1, focus: 1, resistance: 1 } }
+    ]},
+    { id: 'research_intro', semester: 2, title: '科研入门', tag: '学术发展', desc: '导师邀请本科生参与基础科研项目，但枯燥的文献阅读让人却步。', choices: [
+        { text: '🔬 加入课题组', effects: { focus: 2, talent: 1, social: -1, resistance: -1 } },
+        { text: '📊 先观望一学期', effects: { focus: -1, social: 1 } }
+    ]},
+    { id: 'internship_hunt', semester: 3, title: '暑期实习申请', tag: '职业规划', desc: '周围同学开始投简历找实习，你也该为未来打算了。', choices: [
+        { text: '📄 海投简历，广撒网', effects: { social: 1, resistance: -2, focus: 1 }, check: { stat: 'social', val: 3, success: '收到多家面试邀请。', fail: '简历石沉大海，焦虑倍增。' } },
+        { text: '🔧 提升技能再出发', effects: { talent: 2, focus: 1, social: -1 } },
+        { text: '🏖️ 计划暑期旅行', effects: { health: 2, resistance: 2, focus: -1 } }
+    ]},
+    { id: 'love_affair', semester: 3, title: '春日恋歌', tag: '情感生活', desc: '樱花树下，有人向你表白。是接受这份感情，还是专注学业？', choices: [
+        { text: '❤️ 接受表白', effects: { social: 3, focus: -2, resistance: 1, health: 1 } },
+        { text: '📚 婉拒，专注学习', effects: { focus: 2, social: -1, resistance: -1 } },
+        { text: '🤝 做朋友，观察看看', effects: { social: 1, focus: -1 } }
+    ]},
+    { id: 'major_competition', semester: 3, title: '专业竞赛选拔', tag: '竞赛挑战', desc: '全国大学生专业相关竞赛开始报名，是挑战自我的机会。', choices: [
+        { text: '🏆 组队报名参赛', effects: { talent: 2, focus: 1, resistance: -2, health: -1 }, check: { stat: 'talent', val: 4, success: '一路过关斩将，进入国赛！', fail: '初赛就被淘汰，备受打击。' } },
+        { text: '👀 旁观学习', effects: { focus: 1, resistance: 1 } }
+    ]},
+    { id: 'future_path', semester: 4, title: '未来岔路口', tag: '关键抉择', desc: '保研、考研、出国、就业...你必须做出初步选择了。', choices: [
+        { text: '🎓 准备保研材料', effects: { focus: 2, resistance: -2 }, check: { stat: 'focus', val: 5, success: '排名靠前，保研有望。', fail: '竞争激烈，处于边缘。' } },
+        { text: '📚 开始考研复习', effects: { focus: 3, health: -1, resistance: -2 } },
+        { text: '✈️ 准备出国语言考试', effects: { focus: 2, talent: 1, resistance: -1 } },
+        { text: '💼 全力找实习积累经验', effects: { social: 2, focus: 1, resistance: -1 } }
+    ]},
+    { id: 'academic_forum', semester: 4, title: '学术论坛报告', tag: '学术展示', desc: '你的一篇课程论文被选中在院级论坛展示，需要面对众多教授。', choices: [
+        { text: '🎤 脱稿演讲，展示风采', effects: { social: 2, talent: 1, resistance: -2 }, check: { stat: 'social', val: 4, success: '报告精彩，获得教授青睐。', fail: '紧张忘词，场面尴尬。' } },
+        { text: '📑 照本宣科，稳妥为上', effects: { focus: 1, resistance: -1 } }
+    ]},
+    { id: 'certificate', semester: 4, title: '职业证书考试', tag: '技能提升', desc: '教师资格证、CPA、司法考试等专业证书报名开始。', choices: [
+        { text: '📖 报名并全力备考', effects: { focus: 2, resistance: -2, health: -1 }, check: { stat: 'focus', val: 4, success: '顺利通过基础科目！', fail: '难度太大，需要再战。' } },
+        { text: '⏰ 明年再说', effects: { resistance: 1, focus: -1 } }
+    ]},
+    { id: 'summer_intern', semester: 5, title: '暑期专业实习', tag: '职业体验', desc: '进入专业相关单位实习，理论与现实的差距让你困惑。', choices: [
+        { text: '💪 主动承担最难的任务', effects: { focus: 2, resistance: -2, health: -1 }, check: { stat: 'focus', val: 4, success: '出色完成，获得留用机会！', fail: '搞砸任务，被批评。' } },
+        { text: '📖 观察学习，积累经验', effects: { focus: 1, social: 1 } },
+        { text: '😰 应付了事，准备考研', effects: { focus: -1, resistance: -1 } }
+    ]},
+    { id: 'innovation_project', semester: 5, title: '大创项目结题', tag: '科研项目', desc: '主持的大学生创新创业项目到了结题验收阶段，数据却不理想。', choices: [
+        { text: '🔬 优化数据，完善报告', effects: { focus: 2, talent: 1, resistance: -2 }, check: { stat: 'talent', val: 3, success: '项目获评优秀！', fail: '勉强结题，成绩一般。' } },
+        { text: '🤝 求助导师修改', effects: { social: 1, focus: 1 } }
+    ]},
+    { id: 'grad_school_exam', semester: 5, title: '考研备战瓶颈', tag: '学业压力', desc: '考研复习进入疲劳期，模拟考成绩不理想。', choices: [
+        { text: '📚 增加强度，死磕到底', effects: { focus: 2, health: -2, resistance: -3 }, check: { stat: 'resistance', val: 4, success: '突破瓶颈，成绩提升。', fail: '身心俱疲，效率更低。' } },
+        { text: '🏃 调整节奏，劳逸结合', effects: { health: 2, resistance: 1, focus: -1 } },
+        { text: '🚪 考虑放弃，转向就业', effects: { resistance: 2, social: 1, focus: -2 } }
+    ]},
+    { id: 'postgraduate_interview', semester: 6, title: '保研/考研面试', tag: '人生关卡', desc: '推免面试或考研复试来临，这是决定命运的时刻。', choices: [
+        { text: '🎓 全力以赴，展现自我', effects: { focus: 2, resistance: -3, social: 1 }, check: { stat: 'focus', val: 5, success: '面试通过，成功上岸！', fail: '发挥失常，名落孙山。' } },
+        { text: '🤝 找导师沟通套磁', effects: { social: 2, resistance: -1 } }
+    ]},
+    { id: 'autumn_recruitment', semester: 6, title: '秋招黄金季', tag: '求职就业', desc: '校园招聘会人山人海，你需要在千军万马中突围。', choices: [
+        { text: '💼 海投简历，疯狂面试', effects: { social: 2, resistance: -2, health: -1 }, check: { stat: 'social', val: 4, success: '拿到心仪offer！', fail: '屡屡碰壁，自我怀疑。' } },
+        { text: '🎯 精准投递，有的放矢', effects: { focus: 2, resistance: -1 } },
+        { text: '📚 放弃秋招，准备春招', effects: { focus: 1, resistance: 1 } }
+    ]},
+    { id: 'thesis_proposal', semester: 6, title: '毕业论文开题', tag: '学术起步', desc: '选题报告会上，专家组对你的选题提出了尖锐质疑。', choices: [
+        { text: '🛡️ 据理力争，坚持方向', effects: { focus: 2, resistance: -1 }, check: { stat: 'focus', val: 5, success: '说服评委，选题通过。', fail: '被认为准备不足，需要修改。' } },
+        { text: '📝 虚心接受，大改方向', effects: { focus: -1, resistance: -2, health: -1 } }
+    ]},
+    { id: 'thesis_defense', semester: 7, title: '毕业答辩', tag: '终点站', desc: '四年最后的关卡，展示你的研究成果。答辩委员会严肃地坐在台下。', choices: [
+        { text: '🎓 自信展示，对答如流', effects: { focus: 3, resistance: -2 }, check: { stat: 'focus', val: 5, success: '优秀毕业论文！', fail: '被问住，勉强通过。' } },
+        { text: '🙏 祈祷顺利，低调通过', effects: { resistance: -1, focus: 1 } }
+    ]},
+    { id: 'farewell_party', semester: 7, title: '毕业告别', tag: '青春散场', desc: '散伙饭上，大家抱头痛哭。四年时光转瞬即逝。', choices: [
+        { text: '🍻 不醉不归，尽情告别', effects: { social: 3, health: -2, resistance: 2 } },
+        { text: '📷 拍照留念，制作纪念册', effects: { talent: 2, social: 2 } },
+        { text: '💼 提前去单位报到', effects: { focus: 2, social: -1 } }
+    ]},
+    { id: 'graduation_ceremony', semester: 7, title: '学位授予仪式', tag: '荣耀时刻', desc: '校长为你拨穗，学位证书终于到手。大学生活正式画上句号。', choices: [
+        { text: '🎉 庆祝毕业，展望未来', finalCheck: true }
+    ]}
+];
+
+let gameState = {
+    major: null,
+    stats: { focus: 0, talent: 0, health: 0, social: 0, resistance: 0 },
+    initialStats: {},
+    gpa: 3.0,
+    semester: 0,
+    year: 1,
+    history: [],
+    currentEventIndex: 0,
+    eventQueue: [],
+    yearSummary: { 1: [], 2: [], 3: [], 4: [] },
+    restUsed: false,
+    dropoutConsidered: false,
+    eventCounts: {}
+};
+
+function init() { renderMajors(); renderStatControls(); updateStatPreview(); }
+
+function renderMajors() {
+    const container = document.getElementById('major-list');
+    container.innerHTML = MAJORS.map(m => `
+        <div class="major-card p-4 rounded-xl border border-slate-600 bg-slate-800/50 cursor-pointer flex items-center gap-4" onclick="selectMajor('${m.id}')" id="major-${m.id}">
+            <div class="text-3xl">${m.icon}</div>
+            <div class="flex-grow">
+                <div class="font-bold text-white">${m.name}</div>
+                <div class="text-xs text-cyan-400 mb-1">${m.category}</div>
+                <div class="text-xs text-slate-400">${m.desc}</div>
+                <div class="mt-2 flex gap-2 text-xs">${m.advantages.map(a => `<span class="px-2 py-0.5 rounded bg-slate-700 text-slate-300">${STATS[a].name}</span>`).join('')}</div>
+            </div>
+        </div>
+    `).join('');
+}
+
+let selectedMajorId = null, allocatedPoints = { focus: 0, talent: 0, health: 0, social: 0, resistance: 0 }, TOTAL_POINTS = 10;
+
+function selectMajor(id) {
+    selectedMajorId = id; allocatedPoints = { focus: 0, talent: 0, health: 0, social: 0, resistance: 0 };
+    document.querySelectorAll('.major-card').forEach(el => el.classList.remove('selected'));
+    document.getElementById(`major-${id}`).classList.add('selected');
+    updateStatPreview(); renderStatControls();
+}
+
+function renderStatControls() {
+    const container = document.getElementById('stats-container');
+    if (!selectedMajorId) { container.innerHTML = '<p class="text-slate-500 italic">请先选择学科门类...</p>'; return; }
+    const major = MAJORS.find(m => m.id === selectedMajorId);
+    container.innerHTML = Object.keys(STATS).map(key => {
+        const base = major.baseStats[key], current = base + allocatedPoints[key];
+        return `
+            <div>
+                <div class="flex justify-between mb-1">
+                    <span class="text-sm text-slate-300">${STATS[key].icon} ${STATS[key].name} <span class="text-xs text-slate-500">(${STATS[key].desc})</span></span>
+                    <span class="text-sm font-mono text-white"><span class="text-slate-500">${base}</span> + <span class="text-yellow-400">${allocatedPoints[key]}</span> = <span class="font-bold text-lg">${current}</span></span>
+                </div>
+                <div class="flex gap-2 items-center">
+                    <button onclick="adjustStat('${key}', -1)" class="w-8 h-8 rounded bg-slate-700 hover:bg-slate-600 text-white font-bold">-</button>
+                    <input type="range" min="0" max="10" value="${allocatedPoints[key]}" oninput="setStat('${key}', this.value)" class="flex-grow h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-blue-500">
+                    <button onclick="adjustStat('${key}', 1)" class="w-8 h-8 rounded bg-slate-700 hover:bg-slate-600 text-white font-bold">+</button>
+                </div>
+            </div>
+        `;
+    }).join('');
+    updateRemainingPoints();
+}
+
+function adjustStat(key, delta) {
+    const newVal = allocatedPoints[key] + delta, currentTotal = Object.values(allocatedPoints).reduce((a, b) => a + b, 0);
+    if (newVal >= 0 && newVal <= 10 && (currentTotal + delta) <= TOTAL_POINTS) { allocatedPoints[key] = newVal; renderStatControls(); updateStatPreview(); }
+}
+
+function setStat(key, val) {
+    val = parseInt(val); const otherStatsSum = Object.keys(allocatedPoints).filter(k => k !== key).reduce((sum, k) => sum + allocatedPoints[k], 0);
+    if (otherStatsSum + val <= TOTAL_POINTS) { allocatedPoints[key] = val; renderStatControls(); updateStatPreview(); }
+}
+
+function updateRemainingPoints() {
+    const used = Object.values(allocatedPoints).reduce((a, b) => a + b, 0), remaining = TOTAL_POINTS - used, el = document.getElementById('points-remaining');
+    el.innerText = remaining; el.className = remaining === 0 ? 'text-green-400 font-bold' : 'text-yellow-400';
+    document.getElementById('start-btn').disabled = (remaining !== 0 || !selectedMajorId);
+}
+
+function updateStatPreview() {
+    const container = document.getElementById('stat-preview-bars');
+    if (!selectedMajorId) { container.innerHTML = ''; return; }
+    const major = MAJORS.find(m => m.id === selectedMajorId);
+    container.innerHTML = Object.keys(STATS).map(key => {
+        const val = major.baseStats[key] + allocatedPoints[key], pct = Math.min(100, (val / 10) * 100);
+        return `<div class="flex items-center gap-2 text-xs"><span class="w-16 text-slate-400">${STATS[key].name}</span><div class="flex-grow stat-bar-bg"><div class="stat-bar-fill ${STATS[key].color}" style="width: ${pct}%"></div></div><span class="w-4 text-right">${val}</span></div>`;
+    }).join('');
+}
+
+function startGame() {
+    if (!selectedMajorId) return; const major = MAJORS.find(m => m.id === selectedMajorId); gameState.major = major;
+    Object.keys(STATS).forEach(key => { gameState.stats[key] = major.baseStats[key] + allocatedPoints[key]; }); gameState.initialStats = {...gameState.stats};
+    generateEventQueue(); document.getElementById('timeline-display').classList.remove('hidden'); updateTimeline();
+    document.getElementById('screen-creation').classList.add('hidden'); document.getElementById('screen-gameplay').classList.remove('hidden'); document.getElementById('screen-gameplay').classList.add('fade-in');
+    updateGameUI(); loadNextEvent();
+}
+
+function generateEventQueue() {
+    gameState.eventQueue = [];
+    const semesterStructure = { 0: ['welcome', 'major_specific_0', 'military_training', 'club_recruit', 'first_exam'], 1: ['major_specific_1', 'major_transfer', 'spring_sports', 'winter_social'], 2: ['major_specific_2', 'core_course', 'cet_exam', 'research_intro'], 3: ['major_specific_3', 'internship_hunt', 'love_affair', 'major_competition'], 4: ['major_specific_4', 'future_path', 'academic_forum', 'certificate'], 5: ['major_specific_5', 'summer_intern', 'innovation_project', 'grad_school_exam'], 6: ['major_specific_6', 'postgraduate_interview', 'autumn_recruitment', 'thesis_proposal'], 7: ['major_specific_7', 'thesis_defense', 'farewell_party', 'graduation_ceremony'] };
+    for (let sem = 0; sem <= 7; sem++) {
+        const structure = semesterStructure[sem], semEvents = [];
+        structure.forEach(type => {
+            if (type === 'welcome') semEvents.push(EVENTS.welcome);
+            else if (type.startsWith('major_specific')) {
+                const majorEvents = MAJOR_EVENTS[gameState.major.id], idx = parseInt(type.split('_')[2]);
+                if (majorEvents && majorEvents[idx]) semEvents.push({...majorEvents[idx], semester: sem, tag: '专业特色', type: 'major'});
+            } else { const event = COMMON_EVENTS.find(e => e.id === type); if (event) semEvents.push(event); }
+        });
+        gameState.eventQueue.push(...semEvents);
+    }
+}
+
+function updateTimeline() {
+    document.querySelectorAll('.timeline-item').forEach(item => {
+        const sem = parseInt(item.dataset.sem);
+        if (sem === gameState.semester) item.classList.add('active'); else item.classList.remove('active');
+    });
+}
+
+function updateGameUI() {
+    document.getElementById('game-major-name').innerText = gameState.major.name; document.getElementById('game-avatar').innerText = gameState.major.icon;
+    const year = Math.floor(gameState.semester / 2) + 1, term = gameState.semester % 2 === 0 ? '上' : '下';
+    document.getElementById('game-semester-display').innerText = `大${['一','二','三','四'][year-1]}${term}学期`; document.getElementById('game-year-display').innerText = `第 ${year} 年 / 共 4 年`;
+    document.getElementById('game-stats-display').innerHTML = Object.keys(STATS).map(key => {
+        const val = gameState.stats[key], pct = Math.min(100, Math.max(0, (val / 15) * 100)), isLow = (key === 'health' && val < 3) || (key === 'resistance' && val < 3);
+        return `<div class="mb-2"><div class="flex justify-between text-xs mb-1"><span class="text-slate-300">${STATS[key].icon} ${STATS[key].name}</span><span class="${isLow ? 'text-red-400 font-bold' : 'text-slate-300'}">${val}</span></div><div class="h-2 bg-slate-700 rounded-full overflow-hidden"><div class="h-full ${STATS[key].color} transition-all duration-500 ${isLow ? 'warning-pulse' : ''}" style="width: ${pct}%"></div></div></div>`;
+    }).join('');
+    checkStatusWarnings(); document.getElementById('game-gpa').innerText = gameState.gpa.toFixed(2);
+}
+
+function checkStatusWarnings() {
+    const warnings = document.getElementById('status-warnings'); let html = '';
+    if (gameState.stats.health <= 2) { html += '<div class="p-2 bg-red-900/50 border border-red-600 rounded text-xs text-red-200">⚠️ 健康值过低！建议休息</div>'; document.getElementById('rest-btn').classList.remove('hidden'); } else document.getElementById('rest-btn').classList.add('hidden');
+    if (gameState.stats.resistance <= 3) html += '<div class="p-2 bg-orange-900/50 border border-orange-600 rounded text-xs text-orange-200">⚠️ 抗压值过低！濒临崩溃</div>';
+    if (gameState.gpa < 2.0) html += '<div class="p-2 bg-yellow-900/50 border border-yellow-600 rounded text-xs text-yellow-200">⚠️ GPA过低！学业警告</div>';
+    warnings.innerHTML = html;
+}
+
+function loadNextEvent() {
+    const conditional = checkConditionalEvents(); if (conditional) { displayEvent(conditional); return; }
+    const yearEndSemesters = [1, 3, 5];
+    if (yearEndSemesters.includes(gameState.semester) && gameState.currentEventIndex > 0) {
+        const year = Math.floor(gameState.semester / 2) + 1;
+        if (!gameState.yearSummary[year] || gameState.yearSummary[year].length === 0) { showYearSummary(year); return; }
+    }
+    if (gameState.semester >= 7 && gameState.currentEventIndex >= gameState.eventQueue.length - 1) { endGame(); return; }
+    let eventFound = false, attempts = 0, maxAttempts = 50;
+    while (!eventFound && attempts < maxAttempts && gameState.currentEventIndex < gameState.eventQueue.length) {
+        const event = gameState.eventQueue[gameState.currentEventIndex], eventId = event.id, currentCount = gameState.eventCounts[eventId] || 0;
+        if (currentCount >= 2) { gameState.currentEventIndex++; attempts++; continue; }
+        if (event.semester !== undefined && event.semester !== gameState.semester) { gameState.semester = event.semester; gameState.year = Math.floor(gameState.semester / 2) + 1; updateTimeline(); }
+        gameState.eventCounts[eventId] = currentCount + 1; displayEvent(event); eventFound = true;
+    }
+    if (!eventFound) { if (gameState.semester >= 7) endGame(); else { const year = Math.floor(gameState.semester / 2) + 1; showYearSummary(year); } }
+}
+
+function checkConditionalEvents() {
+    for (let key in CONDITIONAL_EVENTS) {
+        const condEvent = CONDITIONAL_EVENTS[key];
+        if (condEvent.condition(gameState.stats, gameState)) {
+            const alreadyTriggered = gameState.history.some(h => h.eventId === condEvent.id && h.semester === gameState.semester);
+            if (!alreadyTriggered) { gameState.eventCounts[condEvent.id] = (gameState.eventCounts[condEvent.id] || 0) + 1; return condEvent; }
+        }
+    }
+    return null;
+}
+
+function displayEvent(event) {
+    document.getElementById('event-tag').innerText = event.tag || '校园生活'; document.getElementById('event-tag').className = `px-3 py-1 rounded-full text-xs font-bold mb-2 inline-block ${getTagColor(event.tag)}`;
+    document.getElementById('event-title').innerText = event.title; document.getElementById('event-desc').innerText = event.desc; document.getElementById('event-flavor').innerText = event.flavor || '';
+    const choicesContainer = document.getElementById('choices-container'); choicesContainer.innerHTML = '';
+    event.choices.forEach(choice => {
+        const btn = document.createElement('button'); btn.className = 'choice-btn w-full text-left p-4 rounded-lg border border-slate-600 bg-slate-800/50 hover:border-blue-500 hover:bg-slate-700/50 transition group';
+        let html = `<div class="font-bold text-white group-hover:text-blue-300 mb-1">${choice.text}</div>`; let effectsHint = [];
+        for (let [k, v] of Object.entries(choice.effects || {})) { if (v > 0) effectsHint.push(`+${v} ${STATS[k].name}`); if (v < 0) effectsHint.push(`${v} ${STATS[k].name}`); }
+        if (effectsHint.length > 0) html += `<div class="text-xs text-slate-500">${effectsHint.join(' | ')}</div>`; if (choice.risk) html += `<div class="text-xs text-red-400 mt-1">⚠️ ${choice.risk}</div>`;
+        btn.innerHTML = html; btn.onclick = () => makeChoice(choice, event); choicesContainer.appendChild(btn);
+    });
+    document.getElementById('comparison-view').classList.add('hidden');
+}
+
+function getTagColor(tag) {
+    const colors = { '入学季': 'bg-blue-900 text-blue-200 border-blue-700', '社团纳新': 'bg-purple-900 text-purple-200 border-purple-700', '专业特色': 'bg-cyan-900 text-cyan-200 border-cyan-700', '学业压力': 'bg-yellow-900 text-yellow-200 border-yellow-700', '紧急事件': 'bg-red-900 text-red-200 border-red-700', '心理危机': 'bg-red-900 text-red-200 border-red-700', '特殊机遇': 'bg-orange-900 text-orange-200 border-orange-700', '关键抉择': 'bg-orange-900 text-orange-200 border-orange-700', '终点站': 'bg-green-900 text-green-200 border-green-700' };
+    return colors[tag] || 'bg-slate-700 text-slate-200 border-slate-600';
+}
+
+function makeChoice(choice, event) {
+    const record = { semester: gameState.semester, year: gameState.year, eventId: event.id, event: event.title, choice: choice.text, statsBefore: {...gameState.stats}, gpaBefore: gameState.gpa };
+    if (choice.special === 'rest') gameState.restUsed = true; let resultText = "", success = true;
+    if (choice.finalCheck) { endGame(); return; }
+    if (choice.check) {
+        const statVal = gameState.stats[choice.check.stat];
+        if (statVal >= choice.check.val) { resultText = choice.check.success; success = true; gameState.gpa = Math.min(4.0, gameState.gpa + 0.15); } else { resultText = choice.check.fail; success = false; gameState.gpa = Math.max(0.0, gameState.gpa - 0.1); }
+    } else resultText = "你做出了选择，生活继续前行...";
+    for (let [key, val] of Object.entries(choice.effects || {})) gameState.stats[key] += val;
+    // 检查是否有属性值归零或负数，强制退出
+    for (let k of Object.keys(gameState.stats)) {
+        if (gameState.stats[k] <= 0) {
+            gameState.stats[k] = 0;
+            gameOverByAttribute(k);
+            return;
+        }
+    }
+    Object.keys(gameState.stats).forEach(k => { if (gameState.stats[k] < 0) gameState.stats[k] = 0; if (gameState.stats[k] > 15) gameState.stats[k] = 15; });
+    if (gameState.stats.health < gameState.stats.resistance - 5) { resultText += " <br><span class='text-red-400'>⚠️ 健康不佳拖累心理状态！</span>"; gameState.stats.resistance -= 1; gameState.gpa -= 0.05; }
+    record.statsAfter = {...gameState.stats}; record.gpaAfter = gameState.gpa; record.result = resultText; gameState.history.push(record);
+    if (!gameState.yearSummary[gameState.year]) gameState.yearSummary[gameState.year] = []; gameState.yearSummary[gameState.year].push(record); updateGameUI();
+    const compView = document.getElementById('comparison-view'), compGrid = document.getElementById('comparison-grid'); compView.classList.remove('hidden');
+    let checkHtml = ''; if (choice.check) { const have = record.statsBefore[choice.check.stat], req = choice.check.val; checkHtml = `<div class="p-2 bg-slate-800 rounded">要求: ${STATS[choice.check.stat].name} ≥ ${req}</div><div class="p-2 ${have >= req ? 'text-green-400' : 'text-red-400'} font-bold">你的数值: ${have}</div><div class="p-2 font-bold">${have >= req ? '✓ 成功' : '✗ 失败'}</div>`; } else checkHtml = `<div class="col-span-3 p-2 text-slate-400">安全选择，无风险判定</div>`;
+    compGrid.innerHTML = `<div class="col-span-3 text-left text-sm mb-2 border-b border-slate-700 pb-1 text-white">${resultText}</div>${checkHtml}`;
+    document.getElementById('choices-container').innerHTML = `<button onclick="nextEvent()" class="w-full py-3 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white font-bold rounded-lg shadow-lg transition transform hover:scale-105">继续 ➔</button>`;
+}
+
+function nextEvent() { gameState.currentEventIndex++; loadNextEvent(); }
+
+function takeRest() {
+    if (gameState.restUsed) { alert('本学年已经使用过休整机会！'); return; }
+    displayEvent({ id: 'rest_event', title: '🛌 申请病假/休整', tag: '休整期', desc: '你向学院申请了短期休整。这段时间你远离了课业压力，专心调养身体。', choices: [ { text: '彻底放松，完全休息', effects: { health: 4, resistance: 3, focus: -2, social: -1 }, special: 'rest' }, { text: '适度休息，保持学习', effects: { health: 2, resistance: 2, focus: 1 } }, { text: '取消申请，继续硬撑', effects: { resistance: -2, health: -1 } } ] });
+}
+
+function confirmDropout() { if (confirm('确定要申请休学/退学吗？这将结束当前游戏。')) displayEvent({ id: 'dropout', title: '🚪 退学决定', tag: '重大决定', desc: '经过深思熟虑，你决定暂时离开校园。这并不是终点，而是另一种人生的开始。', choices: [ { text: '确认退学，结束学业', finalCheck: true } ] }); }
+
+function showYearSummary(year) {
+    document.getElementById('screen-gameplay').classList.add('hidden'); document.getElementById('screen-year-summary').classList.remove('hidden');
+    document.getElementById('summary-year-title').innerText = `大${['一','二','三','四'][year-1]}学年总结`; document.getElementById('summary-year-subtitle').innerText = `${gameState.major.name} - ${gameState.major.category}`;
+    const yearRecords = gameState.yearSummary[year] || [], statChanges = { focus: 0, talent: 0, health: 0, social: 0, resistance: 0 };
+    if (yearRecords.length > 0) { const first = yearRecords[0].statsBefore, last = yearRecords[yearRecords.length - 1].statsAfter || gameState.stats; Object.keys(statChanges).forEach(key => { statChanges[key] = (last[key] || 0) - (first[key] || 0); }); }
+    document.getElementById('summary-stats-change').innerHTML = Object.keys(statChanges).map(key => { const change = statChanges[key], color = change > 0 ? 'text-green-400' : (change < 0 ? 'text-red-400' : 'text-slate-400'), arrow = change > 0 ? '↑' : (change < 0 ? '↓' : '-'); return `<div class="flex justify-between"><span>${STATS[key].name}</span><span class="${color}">${arrow} ${Math.abs(change)}</span></div>`; }).join('');
+    document.getElementById('summary-key-events').innerHTML = yearRecords.slice(-3).map(r => `<div class="p-2 bg-slate-800 rounded border-l-2 border-blue-500"><div class="font-bold text-white text-xs">${r.event}</div><div class="text-slate-400 text-xs mt-1">选择: ${r.choice.substring(0, 20)}...</div></div>`).join('') || '<div class="text-slate-500">本学年暂无重大事件记录</div>';
+    const s = gameState.stats, advices = [];
+    if (s.health < 4) advices.push('⚠️ <b>健康预警</b>：健康状况不佳，建议减少熬夜，增加运动。'); if (s.resistance < 4) advices.push('🛡️ <b>抗压提醒</b>：抗压值过低，容易崩溃，建议通过社交、休息恢复心理韧性。'); if (s.gpa < 2.5) advices.push('📚 <b>学业提醒</b>：GPA偏低，需要投入更多时间学习。'); if (s.social < 3) advices.push('👥 <b>社交建议</b>：社交圈较窄，可以尝试参加社团或小组活动。');
+    if (advices.length === 0) { if (s.focus > 6 && s.gpa > 3.0) advices.push('🎯 <b>优势发展</b>：专注度很高，可以考虑参与科研项目或准备深造。'); if (s.talent > 6) advices.push('✨ <b>特长发挥</b>：特长突出，建议参加相关竞赛或展示活动。'); if (s.social > 6) advices.push('🌟 <b>人脉资源</b>：社交能力强，可以利用人脉寻找实习或合作机会。'); }
+    advices.push({1: '💡 <b>大一规划</b>：打好基础，探索兴趣，建立良好的学习习惯和社交圈。', 2: '💡 <b>大二规划</b>：深化专业学习，开始考虑未来方向（考研/就业/出国）。', 3: '💡 <b>大三规划</b>：这是关键年！确定发展方向，积累实习或科研经历。', 4: '💡 <b>大四规划</b>：完成毕业设计，落实就业或升学，做好身份转换准备。'}[year]);
+    document.getElementById('summary-advice').innerHTML = advices.join('<br><br>');
+}
+
+function nextYear() { gameState.restUsed = false; document.getElementById('screen-year-summary').classList.add('hidden'); document.getElementById('screen-gameplay').classList.remove('hidden'); loadNextEvent(); }
+
+function gameOverByAttribute(depletedStat) {
+    document.getElementById('screen-gameplay').classList.add('hidden');
+    document.getElementById('screen-year-summary').classList.add('hidden');
+    document.getElementById('screen-ending').classList.remove('hidden');
+    document.getElementById('screen-ending').classList.add('fade-in');
+
+    const s = gameState.stats;
+    const statNames = { focus: '专注度', talent: '特长', health: '健康值', social: '社交力', resistance: '抗压值' };
+    const statColors = { focus: 'text-blue-400', talent: 'text-purple-400', health: 'text-green-400', social: 'text-pink-400', resistance: 'text-red-400' };
+
+    document.getElementById('end-title').innerText = '💔 大学之路中断';
+    document.getElementById('end-desc').innerHTML = `由于你的<span class="${statColors[depletedStat]}">${statNames[depletedStat]}</span>耗尽，你无法继续学业，被迫暂时离开了大学校园。`;
+    document.getElementById('end-summary').innerText = `在第${gameState.year}学年第${gameState.semester % 2 + 1}学期，你的${statNames[depletedStat]}降至0，无法应对大学生活的挑战。这提醒我们要平衡发展，关注身心健康。`;
+
+    // 更新5维属性显示（强制退出时显示实际数值而非评级）
+    document.getElementById('end-focus').innerText = s.focus;
+    document.getElementById('end-talent').innerText = s.talent;
+    document.getElementById('end-health').innerText = s.health;
+    document.getElementById('end-social').innerText = s.social;
+    document.getElementById('end-resistance').innerText = s.resistance;
+    // 计算当前总值（强制退出时）
+    const totalScore = Object.values(s).reduce((a,b) => a+b, 0);
+    document.getElementById('end-total').innerText = totalScore + " (未完成)";
+    document.getElementById('end-rating').innerText = "⚠️ 学业中断";
+
+    // 绘制雷达图，但标记出缺失的属性
+    new Chart(document.getElementById('radarChart').getContext('2d'), { 
+        type: 'radar', 
+        data: { 
+            labels: Object.values(STATS).map(s => s.name), 
+            datasets: [{ 
+                label: '最终属性', 
+                data: Object.keys(STATS).map(k => s[k]), 
+                backgroundColor: 'rgba(239, 68, 68, 0.2)', 
+                borderColor: '#ef4444', 
+                pointBackgroundColor: '#fff', 
+                pointBorderColor: '#ef4444' 
+            }, { 
+                label: '初始属性', 
+                data: Object.keys(STATS).map(k => gameState.initialStats[k]), 
+                backgroundColor: 'rgba(148, 163, 184, 0.1)', 
+                borderColor: '#94a3b8', 
+                borderDash: [5, 5], 
+                pointBackgroundColor: '#94a3b8' 
+            }] 
+        }, 
+        options: { 
+            scales: { 
+                r: { 
+                    angleLines: { color: 'rgba(255, 255, 255, 0.1)' }, 
+                    grid: { color: 'rgba(255, 255, 255, 0.1)' }, 
+                    pointLabels: { color: '#94a3b8' }, 
+                    ticks: { display: false, backdropColor: 'transparent' }, 
+                    suggestedMin: 0, 
+                    suggestedMax: 12 
+                } 
+            }, 
+            plugins: { 
+                legend: { labels: { color: '#e2e8f0' } } 
+            } 
+        } 
+    });
+}
+
+function endGame() {
+    document.getElementById('screen-gameplay').classList.add('hidden'); document.getElementById('screen-year-summary').classList.add('hidden'); document.getElementById('screen-ending').classList.remove('hidden'); document.getElementById('screen-ending').classList.add('fade-in');
+    const s = gameState.stats, gpa = gameState.gpa; let title = "平凡的大学毕业生", desc = "你完成了学业，没有留下太多遗憾，也没有太多值得吹嘘的事迹。";
+    if (gpa > 3.8 && s.health > 5 && s.resistance > 5) { title = "🏆 人生赢家"; desc = "你不仅成绩优异，而且身心健康，是所有人羡慕的对象。"; } else if (gpa > 3.8) { title = "🎓 学霸"; desc = "你的成绩顶尖，但为此付出了健康的代价。"; } else if (s.social > 8 && s.talent > 5) { title = "🌟 社团达人"; desc = "你在社团活动中如鱼得水，未来的人脉资源广阔。"; } else if (s.health < 2) { title = "🏥 带病的毕业生"; desc = "由于长期忽视健康，你勉强毕业，急需休养。"; } else if (gpa < 2.0) { title = "📉 艰难毕业"; desc = "你勉强达到了毕业要求，但未来道路充满挑战。"; } else if (s.focus > 7 && s.talent > 5) { title = "🔬 学术新星"; desc = "你展现了出色的学术潜力，适合继续深造。"; } else if (s.resistance < 3) { title = "😰 疲惫的毕业生"; desc = "你承受了巨大的心理压力，毕业后需要好好调整。"; }
+    const achievements = []; if (gpa > 3.5) achievements.push(`保持高GPA(${gpa.toFixed(2)})`); if (s.social > 6) achievements.push('建立广泛人脉'); if (s.talent > 6) achievements.push('发展突出特长'); if (s.health > 6) achievements.push('保持良好健康'); if (s.focus > 6) achievements.push('高度专注学习'); if (s.resistance > 6) achievements.push('具备强大抗压能力');
+    document.getElementById('end-title').innerText = title; document.getElementById('end-desc').innerText = desc;
+    // 更新5维属性评价
+    document.getElementById('end-focus').innerText = s.focus > 6 ? "卓越" : (s.focus < 3 ? "薄弱" : "良好");
+    document.getElementById('end-talent').innerText = s.talent > 6 ? "出众" : (s.talent < 3 ? "平庸" : "一般");
+    document.getElementById('end-health').innerText = s.health > 5 ? "健康" : (s.health < 3 ? "堪忧" : "一般");
+    document.getElementById('end-social').innerText = s.social > 6 ? "社牛" : (s.social < 3 ? "社恐" : "普通");
+    document.getElementById('end-resistance').innerText = s.resistance > 6 ? "坚韧" : (s.resistance < 3 ? "脆弱" : "正常");
+    // 计算并显示属性总值
+    const totalScore = Object.values(s).reduce((a,b) => a+b, 0);
+    document.getElementById('end-total').innerText = totalScore;
+    // 根据总值给出综合评级
+    let rating = "";
+    if (totalScore >= 35) rating = "⭐⭐⭐⭐⭐ 传奇大学生";
+    else if (totalScore >= 30) rating = "⭐⭐⭐⭐ 优秀毕业生";
+    else if (totalScore >= 25) rating = "⭐⭐⭐ 合格毕业生";
+    else if (totalScore >= 20) rating = "⭐⭐ 勉强毕业";
+    else rating = "⭐ 艰难求生";
+    document.getElementById('end-rating').innerText = rating;
+    document.getElementById('end-summary').innerText = achievements.length > 0 ? `四年里，你${achievements.join('、')}。最终属性总和为${Object.values(s).reduce((a,b) => a+b, 0)}点。` : `四年时光平淡度过，最终属性总和为${Object.values(s).reduce((a,b) => a+b, 0)}点。`;
+    new Chart(document.getElementById('radarChart').getContext('2d'), { type: 'radar', data: { labels: Object.values(STATS).map(s => s.name), datasets: [{ label: '最终属性', data: Object.keys(STATS).map(k => s[k]), backgroundColor: 'rgba(59, 130, 246, 0.2)', borderColor: '#3b82f6', pointBackgroundColor: '#fff', pointBorderColor: '#3b82f6' }, { label: '初始属性', data: Object.keys(STATS).map(k => gameState.initialStats[k]), backgroundColor: 'rgba(148, 163, 184, 0.1)', borderColor: '#94a3b8', borderDash: [5, 5], pointBackgroundColor: '#94a3b8' }] }, options: { scales: { r: { angleLines: { color: 'rgba(255, 255, 255, 0.1)' }, grid: { color: 'rgba(255, 255, 255, 0.1)' }, pointLabels: { color: '#94a3b8' }, ticks: { display: false, backdropColor: 'transparent' }, suggestedMin: 0, suggestedMax: 12 } }, plugins: { legend: { labels: { color: '#e2e8f0' } } } } });
+}
+
+function exportLog() {
+    let logContent = `====== 大学人生模拟记录 ======\n学科门类: ${gameState.major.name}\n最终GPA: ${gameState.gpa.toFixed(2)}\n总属性变化: ${Object.keys(gameState.stats).map(k => `${STATS[k].name}: ${gameState.initialStats[k]}→${gameState.stats[k]}`).join(', ')}\n事件触发统计: ${Object.entries(gameState.eventCounts).map(([id, count]) => `${id}:${count}`).join(', ')}\n--------------------------`;
+    let currentYear = 0; gameState.history.forEach(entry => { if (entry.year !== currentYear) { currentYear = entry.year; logContent += `\n\n===== 大${['一','二','三','四'][currentYear-1]}学年 =====\n`; } logContent += `\n[${entry.semester}] ${entry.event}\n选择: ${entry.choice}\n`; if (entry.result) logContent += `结果: ${entry.result.replace(/<[^>]*>/g, '')}\n`; logContent += `GPA变化: ${entry.gpaBefore.toFixed(2)} → ${(entry.gpaAfter || entry.gpaBefore).toFixed(2)}\n`; });
+    const blob = new Blob([logContent], { type: 'text/plain;charset=utf-8' }), url = URL.createObjectURL(blob), a = document.createElement('a'); a.href = url; a.download = `大学模拟记录_${gameState.major.name}_${new Date().toLocaleDateString()}.txt`; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+}
+
+init();
+</script>
+</body>
+</html>
